@@ -1,10 +1,8 @@
 
 import streamlit as st
 import folium
-import requests
-import math
-from datetime import datetime
 from streamlit_folium import st_folium
+from datetime import datetime
 
 
 # =====================================
@@ -24,6 +22,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+
 .stApp {
     background-color: #E8F5E9;
 }
@@ -43,20 +42,26 @@ div.stButton > button {
     height: 45px;
     font-weight: bold;
 }
+
+div.stButton > button:hover {
+    background-color: #166534;
+    color: white;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 
 # =====================================
-# SINGLE DUSTBIN DATABASE
+# DUSTBIN INFORMATION
 # =====================================
 
 dustbin = {
     "id": "BIN-001",
     "name": "Smart Dustbin",
     "location": "Registered Location",
-    "latitude": 22.163437,
-    "longitude": 84.280954,
+    "latitude": 22.1500000,
+    "longitude": 84.2700000,
     "fill": 0,
     "description": "Smart waste collection point"
 }
@@ -75,6 +80,9 @@ if "sms_message" not in st.session_state:
 if "last_update" not in st.session_state:
     st.session_state.last_update = "Not updated"
 
+if "garbage_level" not in st.session_state:
+    st.session_state.garbage_level = 0
+
 
 # =====================================
 # HEADER
@@ -92,16 +100,6 @@ st.divider()
 
 
 # =====================================
-# DUSTBIN LOCATION
-# =====================================
-
-start = (
-    dustbin["latitude"],
-    dustbin["longitude"]
-)
-
-
-# =====================================
 # MESSAGE UPDATE BUTTON
 # =====================================
 
@@ -109,18 +107,19 @@ st.header("📩 SMS MESSAGE UPDATE")
 
 if st.button(
     "🔄 MESSAGE UPDATE",
-    use_container_width=True
+    use_container_width=True,
+    key="message_update"
 ):
 
     st.session_state.message_received = True
 
     st.session_state.sms_message = (
-        f"SMART DUSTBIN MESSAGE RECEIVED\n"
+        "SMART DUSTBIN MESSAGE RECEIVED\n"
         f"Dustbin ID: {dustbin['id']}\n"
-        f"Garbage Level: {dustbin['fill']}%\n"
+        f"Garbage Level: {st.session_state.garbage_level}%\n"
         f"Latitude: {dustbin['latitude']:.7f}\n"
         f"Longitude: {dustbin['longitude']:.7f}\n"
-        f"Status: NORMAL"
+        f"Status: {'FULL' if st.session_state.garbage_level >= 80 else 'NORMAL'}"
     )
 
     st.session_state.last_update = (
@@ -132,7 +131,10 @@ if st.session_state.message_received:
 
     st.success("✅ SMS RECEIVED")
 
-    st.code(st.session_state.sms_message)
+    st.code(
+        st.session_state.sms_message,
+        language=None
+    )
 
     st.caption(
         "Last updated: " + st.session_state.last_update
@@ -140,69 +142,80 @@ if st.session_state.message_received:
 
 else:
 
-    st.warning("Waiting for SMS message. Press Message Update.")
+    st.warning(
+        "Waiting for SMS message. Press Message Update."
+    )
 
 
 # =====================================
-# DUSTBIN DETAILS
+# GARBAGE DETAILS
 # =====================================
 
 st.divider()
 
-st.header("🗑️ DUSTBIN DETAILS")
+st.header("🗑️ GARBAGE DETAILS")
 
-c1, c2, c3 = st.columns(3)
+col1, col2, col3 = st.columns(3)
 
-c1.metric("Dustbin ID", dustbin["id"])
+col1.metric(
+    "Dustbin ID",
+    dustbin["id"]
+)
 
-c2.metric(
+col2.metric(
     "Garbage Level",
-    f'{dustbin["fill"]}%'
+    f"{st.session_state.garbage_level}%"
 )
 
-c3.metric("Status", "NORMAL")
+if st.session_state.garbage_level >= 80:
+    status = "FULL"
+elif st.session_state.garbage_level >= 50:
+    status = "WARNING"
+else:
+    status = "NORMAL"
 
-st.write("**Name:**", dustbin["name"])
+col3.metric(
+    "Status",
+    status
+)
 
-st.write("**Location:**", dustbin["location"])
-
-st.write("**Description:**", dustbin["description"])
+st.progress(
+    st.session_state.garbage_level / 100
+)
 
 st.write(
-    "**Latitude:**",
-    f'{dustbin["latitude"]:.7f}'
+    "**Dustbin Name:**",
+    dustbin["name"]
 )
 
 st.write(
-    "**Longitude:**",
-    f'{dustbin["longitude"]:.7f}'
+    "**Location:**",
+    dustbin["location"]
 )
 
-st.progress(dustbin["fill"] / 100)
+st.write(
+    "**Description:**",
+    dustbin["description"]
+)
 
 
 # =====================================
-# DISTANCE CALCULATION
+# GPS LOCATION
 # =====================================
 
-def calculate_distance(lat1, lon1, lat2, lon2):
+st.divider()
 
-    R = 6371
+st.header("📍 DUSTBIN GPS LOCATION")
 
-    lat1 = math.radians(lat1)
-    lat2 = math.radians(lat2)
+col1, col2 = st.columns(2)
 
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
+col1.info(
+    f"Latitude: {dustbin['latitude']:.7f}"
+)
 
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(lat1)
-        * math.cos(lat2)
-        * math.sin(dlon / 2) ** 2
-    )
-
-    return 2 * R * math.asin(math.sqrt(a))
+col2.info(
+    f"Longitude: {dustbin['longitude']:.7f}"
+)
 
 
 # =====================================
@@ -213,11 +226,19 @@ st.divider()
 
 st.header("🛰️ SATELLITE MAP")
 
+# Recreate map on every Streamlit rerun
+
 m = folium.Map(
-    location=list(start),
+    location=[
+        dustbin["latitude"],
+        dustbin["longitude"]
+    ],
     zoom_start=17,
     tiles=None
 )
+
+
+# Satellite layer
 
 folium.TileLayer(
     tiles=(
@@ -228,53 +249,78 @@ folium.TileLayer(
     name="Satellite View"
 ).add_to(m)
 
+
+# Street layer
+
 folium.TileLayer(
     "OpenStreetMap",
     name="Street Map"
 ).add_to(m)
 
 
-# =====================================
-# SINGLE DUSTBIN MARKER
-# =====================================
+# Dustbin marker
 
 folium.Marker(
-    location=list(start),
+    location=[
+        dustbin["latitude"],
+        dustbin["longitude"]
+    ],
     tooltip="Smart Dustbin BIN-001",
-    popup=f"""
-    <b>SMART DUSTBIN</b><br>
-    ID: {dustbin['id']}<br>
-    Garbage: {dustbin['fill']}%<br>
-    Latitude: {dustbin['latitude']}<br>
-    Longitude: {dustbin['longitude']}
-    """,
+    popup=folium.Popup(
+        f"""
+        <b>SMART DUSTBIN</b><br>
+        Dustbin ID: {dustbin['id']}<br>
+        Garbage Level: {st.session_state.garbage_level}%<br>
+        Latitude: {dustbin['latitude']:.7f}<br>
+        Longitude: {dustbin['longitude']:.7f}<br>
+        Status: {status}
+        """,
+        max_width=300
+    ),
     icon=folium.Icon(
-        color="green",
+        color="red" if st.session_state.garbage_level >= 80 else "green",
         icon="trash",
         prefix="fa"
     )
 ).add_to(m)
 
+
+# Dustbin location circle
+
 folium.Circle(
-    location=list(start),
+    location=[
+        dustbin["latitude"],
+        dustbin["longitude"]
+    ],
     radius=30,
     color="green",
     fill=True,
     fill_opacity=0.15
 ).add_to(m)
 
+
+# Map layer control
+
 folium.LayerControl().add_to(m)
+
+
+# Display map
 
 st_folium(
     m,
     height=550,
-    use_container_width=True
+    use_container_width=True,
+    key="smart_dustbin_map"
 )
 
 
 # =====================================
 # GOOGLE MAPS LOCATION
 # =====================================
+
+st.divider()
+
+st.header("🧭 GOOGLE MAPS NAVIGATION")
 
 google_maps_url = (
     "https://www.google.com/maps/search/?api=1"
@@ -294,6 +340,6 @@ st.link_button(
 st.divider()
 
 st.caption(
-    "Smart Dustbin Management System | "
+    "Smart Dustbin Monitoring System | "
     "Arduino Uno R3 | SIM900A | Python | Streamlit"
 )
