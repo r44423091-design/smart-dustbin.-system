@@ -42,7 +42,7 @@ div.stButton > button {
 bins = [
     {
         "id": "BIN-001",
-        "name": "Main Road Dustbin",
+        "name": "main truck location",
         "latitude": 22.150000,
         "longitude": 84.270000,
         "fill": 92,
@@ -85,7 +85,7 @@ st.divider()
 # TRUCK LOCATION
 # -------------------------------
 
-st.sidebar.header("🚛 Truck Location")
+st.sidebar.header("dustbin locaton")
 
 truck_lat = st.sidebar.number_input(
     "Truck Latitude",
