@@ -6,6 +6,7 @@ import math
 from datetime import datetime
 from streamlit_folium import st_folium
 
+
 # =====================================
 # PAGE CONFIGURATION
 # =====================================
@@ -15,6 +16,7 @@ st.set_page_config(
     page_icon="♻️",
     layout="wide"
 )
+
 
 # =====================================
 # GREEN THEME
@@ -46,47 +48,18 @@ div.stButton > button {
 
 
 # =====================================
-# DUSTBIN DATABASE
+# SINGLE DUSTBIN DATABASE
 # =====================================
 
-bins = [
-    {
-        "id": "BIN-001",
-        "name": "Main Road Dustbin",
-        "location": "Main Road",
-        "latitude": 22.150000,
-        "longitude": 84.270000,
-        "fill": 92,
-        "description": "Public waste collection point"
-    },
-    {
-        "id": "BIN-002",
-        "name": "Market Dustbin",
-        "location": "Market Area",
-        "latitude": 22.155000,
-        "longitude": 84.275000,
-        "fill": 35,
-        "description": "Market waste collection point"
-    },
-    {
-        "id": "BIN-003",
-        "name": "School Dustbin",
-        "location": "School",
-        "latitude": 22.145000,
-        "longitude": 84.265000,
-        "fill": 85,
-        "description": "School waste collection point"
-    },
-    {
-        "id": "BIN-004",
-        "name": "Park Dustbin",
-        "location": "Public Park",
-        "latitude": 22.160000,
-        "longitude": 84.280000,
-        "fill": 60,
-        "description": "Park waste collection point"
-    }
-]
+dustbin = {
+    "id": "BIN-001",
+    "name": "Smart Dustbin",
+    "location": "Registered Location",
+    "latitude": 22.1500000,
+    "longitude": 84.2700000,
+    "fill": 0,
+    "description": "Smart waste collection point"
+}
 
 
 # =====================================
@@ -119,16 +92,12 @@ st.divider()
 
 
 # =====================================
-# SCHOOL DUSTBIN STARTING LOCATION
+# DUSTBIN LOCATION
 # =====================================
 
-school_bin = next(
-    b for b in bins if b["id"] == "BIN-003"
-)
-
 start = (
-    school_bin["latitude"],
-    school_bin["longitude"]
+    dustbin["latitude"],
+    dustbin["longitude"]
 )
 
 
@@ -143,16 +112,15 @@ if st.button(
     use_container_width=True
 ):
 
-    # Demonstration message using sample data
     st.session_state.message_received = True
 
     st.session_state.sms_message = (
         f"SMART DUSTBIN MESSAGE RECEIVED\n"
-        f"Dustbin ID: {school_bin['id']}\n"
-        f"Garbage Level: {school_bin['fill']}%\n"
-        f"Latitude: {school_bin['latitude']:.6f}\n"
-        f"Longitude: {school_bin['longitude']:.6f}\n"
-        f"Status: {'FULL' if school_bin['fill'] >= 80 else 'NORMAL'}"
+        f"Dustbin ID: {dustbin['id']}\n"
+        f"Garbage Level: {dustbin['fill']}%\n"
+        f"Latitude: {dustbin['latitude']:.7f}\n"
+        f"Longitude: {dustbin['longitude']:.7f}\n"
+        f"Status: NORMAL"
     )
 
     st.session_state.last_update = (
@@ -176,81 +144,41 @@ else:
 
 
 # =====================================
-# SELECT DESTINATION DUSTBIN
+# DUSTBIN DETAILS
 # =====================================
 
 st.divider()
 
-st.header("📍 SELECT DESTINATION DUSTBIN")
-
-destination_bins = [
-    b for b in bins
-    if b["id"] != "BIN-003"
-]
-
-selected_id = st.selectbox(
-    "Choose destination dustbin",
-    [b["id"] for b in destination_bins]
-)
-
-selected = next(
-    b for b in destination_bins
-    if b["id"] == selected_id
-)
-
-destination = (
-    selected["latitude"],
-    selected["longitude"]
-)
-
-
-# =====================================
-# SELECTED DUSTBIN DETAILS
-# =====================================
-
-st.header("🗑️ DESTINATION DUSTBIN DETAILS")
+st.header("🗑️ DUSTBIN DETAILS")
 
 c1, c2, c3 = st.columns(3)
 
-c1.metric("Dustbin ID", selected["id"])
+c1.metric("Dustbin ID", dustbin["id"])
 
 c2.metric(
     "Garbage Level",
-    f"{selected['fill']}%"
+    f'{dustbin["fill"]}%'
 )
 
-status = (
-    "FULL" if selected["fill"] >= 80
-    else "WARNING" if selected["fill"] >= 50
-    else "NORMAL"
-)
+c3.metric("Status", "NORMAL")
 
-c3.metric("Status", status)
+st.write("**Name:**", dustbin["name"])
 
-st.write("**Name:**", selected["name"])
+st.write("**Location:**", dustbin["location"])
 
-st.write("**Location:**", selected["location"])
-
-st.write("**Description:**", selected["description"])
+st.write("**Description:**", dustbin["description"])
 
 st.write(
     "**Latitude:**",
-    f"{selected['latitude']:.6f}"
+    f'{dustbin["latitude"]:.7f}'
 )
 
 st.write(
     "**Longitude:**",
-    f"{selected['longitude']:.6f}"
+    f'{dustbin["longitude"]:.7f}'
 )
 
-st.progress(selected["fill"] / 100)
-
-if selected["fill"] >= 80:
-    st.error("⚠️ Dustbin is FULL. Collection required.")
-elif selected["fill"] >= 50:
-    st.warning("Dustbin is approaching full capacity.")
-else:
-    st.success("Dustbin is operating normally.")
+st.progress(dustbin["fill"] / 100)
 
 
 # =====================================
@@ -278,53 +206,6 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 
 # =====================================
-# ROAD ROUTE CALCULATION
-# =====================================
-
-def get_route(start, destination):
-
-    url = (
-        "https://router.project-osrm.org/route/v1/driving/"
-        f"{start[1]},{start[0]};"
-        f"{destination[1]},{destination[0]}"
-    )
-
-    try:
-
-        response = requests.get(
-            url,
-            params={
-                "overview": "full",
-                "geometries": "geojson"
-            },
-            timeout=15
-        )
-
-        response.raise_for_status()
-
-        data = response.json()
-
-        if data.get("code") != "Ok":
-            return None
-
-        route = data["routes"][0]
-
-        return {
-            "distance": route["distance"] / 1000,
-            "time": route["duration"] / 60,
-            "coordinates": route["geometry"]["coordinates"]
-        }
-
-    except (
-        requests.RequestException,
-        ValueError,
-        KeyError,
-        IndexError
-    ):
-        return None
-
-
-# =====================================
 # SATELLITE MAP
 # =====================================
 
@@ -334,11 +215,9 @@ st.header("🛰️ SATELLITE MAP")
 
 m = folium.Map(
     location=list(start),
-    zoom_start=16,
+    zoom_start=17,
     tiles=None
 )
-
-# Satellite imagery
 
 folium.TileLayer(
     tiles=(
@@ -349,8 +228,6 @@ folium.TileLayer(
     name="Satellite View"
 ).add_to(m)
 
-# Street map
-
 folium.TileLayer(
     "OpenStreetMap",
     name="Street Map"
@@ -358,143 +235,33 @@ folium.TileLayer(
 
 
 # =====================================
-# SCHOOL DUSTBIN MARKER
+# SINGLE DUSTBIN MARKER
 # =====================================
 
 folium.Marker(
     location=list(start),
-    tooltip="School Dustbin BIN-003",
-    popup="""
-    <b>SCHOOL DUSTBIN</b><br>
-    ID: BIN-003<br>
-    Garbage: 85%<br>
-    Status: FULL
+    tooltip="Smart Dustbin BIN-001",
+    popup=f"""
+    <b>SMART DUSTBIN</b><br>
+    ID: {dustbin['id']}<br>
+    Garbage: {dustbin['fill']}%<br>
+    Latitude: {dustbin['latitude']}<br>
+    Longitude: {dustbin['longitude']}
     """,
     icon=folium.Icon(
-        color="red",
+        color="green",
         icon="trash",
         prefix="fa"
     )
 ).add_to(m)
 
-
-# =====================================
-# OTHER DUSTBIN MARKERS
-# =====================================
-
-for b in bins:
-
-    if b["id"] == "BIN-003":
-        continue
-
-    fill = b["fill"]
-
-    if fill >= 80:
-        color = "red"
-        status = "FULL"
-
-    elif fill >= 50:
-        color = "orange"
-        status = "WARNING"
-
-    else:
-        color = "green"
-        status = "NORMAL"
-
-    popup = f"""
-    <b>{b['name']}</b><br>
-    ID: {b['id']}<br>
-    Garbage: {fill}%<br>
-    Location: {b['location']}<br>
-    Latitude: {b['latitude']}<br>
-    Longitude: {b['longitude']}<br>
-    Status: {status}
-    """
-
-    folium.Marker(
-        location=[
-            b["latitude"],
-            b["longitude"]
-        ],
-        popup=folium.Popup(
-            popup,
-            max_width=300
-        ),
-        tooltip=b["name"],
-        icon=folium.Icon(
-            color=color,
-            icon="trash",
-            prefix="fa"
-        )
-    ).add_to(m)
-
-
-# =====================================
-# ROUTE FROM SCHOOL DUSTBIN
-# =====================================
-
-st.header("🚛 DUSTBIN COLLECTION ROUTE")
-
-straight_distance = calculate_distance(
-    start[0],
-    start[1],
-    destination[0],
-    destination[1]
-)
-
-route = get_route(
-    start,
-    destination
-)
-
-if route:
-
-    route_points = [
-        [lat, lon]
-        for lon, lat in route["coordinates"]
-    ]
-
-    folium.PolyLine(
-        route_points,
-        color="#00AA55",
-        weight=6,
-        opacity=0.9,
-        tooltip="School to Selected Dustbin"
-    ).add_to(m)
-
-    col1, col2 = st.columns(2)
-
-    col1.metric(
-        "Road Distance",
-        f"{route['distance']:.2f} km"
-    )
-
-    col2.metric(
-        "Estimated Travel Time",
-        f"{route['time']:.0f} minutes"
-    )
-
-    st.success("Road route calculated successfully.")
-
-else:
-
-    st.warning(
-        "Road routing unavailable. "
-        "Showing straight-line distance instead."
-    )
-
-    st.metric(
-        "Straight-line Distance",
-        f"{straight_distance:.2f} km"
-    )
-
-
-# Fit map
-
-m.fit_bounds([
-    start,
-    destination
-])
+folium.Circle(
+    location=list(start),
+    radius=30,
+    color="green",
+    fill=True,
+    fill_opacity=0.15
+).add_to(m)
 
 folium.LayerControl().add_to(m)
 
@@ -506,56 +273,18 @@ st_folium(
 
 
 # =====================================
-# GOOGLE MAPS NAVIGATION
+# GOOGLE MAPS LOCATION
 # =====================================
 
 google_maps_url = (
-    "https://www.google.com/maps/dir/?api=1"
-    f"&origin={start[0]},{start[1]}"
-    f"&destination={destination[0]},{destination[1]}"
-    "&travelmode=driving"
+    "https://www.google.com/maps/search/?api=1"
+    f"&query={dustbin['latitude']},{dustbin['longitude']}"
 )
 
 st.link_button(
-    "🧭 OPEN GOOGLE MAPS NAVIGATION",
+    "📍 OPEN DUSTBIN LOCATION IN GOOGLE MAPS",
     google_maps_url
 )
-
-
-# =====================================
-# ALL DUSTBIN DETAILS
-# =====================================
-
-st.divider()
-
-st.header("📋 ALL DUSTBIN DETAILS")
-
-for b in bins:
-
-    with st.expander(
-        f"{b['id']} - {b['name']}"
-    ):
-
-        st.write("Location:", b["location"])
-
-        st.write(
-            "Garbage Level:",
-            f"{b['fill']}%"
-        )
-
-        st.write(
-            "Latitude:",
-            f"{b['latitude']:.6f}"
-        )
-
-        st.write(
-            "Longitude:",
-            f"{b['longitude']:.6f}"
-        )
-
-        st.write("Description:", b["description"])
-
-        st.progress(b["fill"] / 100)
 
 
 # =====================================
