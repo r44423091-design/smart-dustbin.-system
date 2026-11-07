@@ -78,9 +78,9 @@ bins = [
         "id": "BIN-003",
         "name": "School Dustbin",
         "location": "School",
-        "latitude": 22.145000,
-        "longitude": 84.265000,
-        "fill": 85,
+        "latitude": 22.163390,
+        "longitude": 84.281212,
+        "fill": 20%,
         "description": "School waste collection point"
     },
 
