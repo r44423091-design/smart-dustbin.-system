@@ -55,8 +55,8 @@ dustbin = {
     "id": "BIN-001",
     "name": "Smart Dustbin",
     "location": "Registered Location",
-    "latitude": 22.1500000,
-    "longitude": 84.2700000,
+    "latitude": 22.163437,
+    "longitude": 84.280954,
     "fill": 0,
     "description": "Smart waste collection point"
 }
