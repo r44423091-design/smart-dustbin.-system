@@ -80,7 +80,7 @@ bins = [
         "location": "School",
         "latitude": 22.163390,
         "longitude": 84.281212,
-        "fill": 20%,
+        "fill": 20,
         "description": "School waste collection point"
     },
 
