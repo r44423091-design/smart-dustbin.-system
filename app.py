@@ -62,7 +62,7 @@ dustbin = {
     "location": "Registered Location",
     "latitude": 22.163481,
     "longitude": 84.28116,
-    "fill": 0,
+    "fill": 75,
     "description": "Smart waste collection point"
 }
 
@@ -119,7 +119,7 @@ if st.button(
         f"Garbage Level: {st.session_state.garbage_level}%\n"
         f"Latitude: {dustbin['latitude']:.7f}\n"
         f"Longitude: {dustbin['longitude']:.7f}\n"
-        f"Status: {'FULL' if st.session_state.garbage_level >= 80 else 'NORMAL'}"
+        f"Status: {'medium' if st.session_state.garbage_level >= 80 else 'NORMAL'}"
     )
 
     st.session_state.last_update = (
